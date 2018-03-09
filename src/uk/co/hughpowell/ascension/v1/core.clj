@@ -7,10 +7,9 @@
 (defn- entry-points [for-namespace]
   (vals (ns-publics for-namespace)))
 
-(defn- change-to-namespace [to-namespace]
-  (-> to-namespace ns-name in-ns))
+(def change-to-namespace (comp in-ns ns-name))
 
-(defn- exit-points* [v]
+(defn- exit-points [v]
   (let [var-meta (meta v)
         var-name (str (:name var-meta))
         var-namespace (ns-name (:ns var-meta))
@@ -31,14 +30,14 @@
                                                (symbol var-name)))))
          (into {}))))
 
-(defn- exit-points [v]
-  (let [current-namespace *ns*]
-    (-> v meta :ns change-to-namespace)
-    (let [exit-pts (exit-points* v)]
-      (change-to-namespace current-namespace)
-      exit-pts)))
-
 (defn namespace-call-map [for-namespace]
-  (into {} (map
-             #(vector (-> % meta :name) (exit-points %))
-             (entry-points for-namespace))))
+  (let [current-namespace *ns*]
+    (try
+      (change-to-namespace for-namespace)
+      (let [call-map (into {} (map
+                                #(vector (-> % meta :name) (exit-points %))
+                                (entry-points for-namespace)))]
+        (change-to-namespace current-namespace)
+        call-map)
+      (catch Exception _
+        (change-to-namespace current-namespace)))))
