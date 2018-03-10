@@ -43,16 +43,19 @@
       call-map
       (recur for-namespace (merge call-map new-map)))))
 
+(defn create-call-map [for-namespace]
+  (let [public-call-map (into {} (map
+                                   #(vector (-> % meta :name) (exit-points %))
+                                   (entry-points for-namespace)))]
+    (internal-vars for-namespace public-call-map)))
+
 (defn namespace-call-map [for-namespace]
   (let [current-namespace *ns*]
     (try
       (change-to-namespace for-namespace)
-      (let [public-call-map (into {} (map
-                                       #(vector (-> % meta :name) (exit-points %))
-                                       (entry-points for-namespace)))
-            call-map (internal-vars for-namespace public-call-map)]
+      (let [result (create-call-map for-namespace)]
         (change-to-namespace current-namespace)
-        call-map)
+        result)
       (catch Exception e
         (change-to-namespace current-namespace)
         (throw e)))))
