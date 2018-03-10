@@ -2,7 +2,8 @@
   "Copyright (c) 2018.
   This Source Code Form is subject to the terms of the Mozilla Public
   License, v. 2.0. If a copy of the MPL was not distributed with this
-  file, You can obtain one at http://mozilla.org/MPL/2.0/.")
+  file, You can obtain one at http://mozilla.org/MPL/2.0/."
+  (:require [clojure.set :as set]))
 
 (defn- entry-points [for-namespace]
   (vals (ns-publics for-namespace)))
@@ -30,14 +31,28 @@
                                                (symbol var-name)))))
          (into {}))))
 
+(defn- internal-vars [for-namespace call-map]
+  (let [new-map (as-> call-map $
+                      (vals $)
+                      (apply merge-with set/union $)
+                      (get $ for-namespace)
+                      (set/difference $ (-> call-map keys set))
+                      (map #(hash-map % (-> % resolve exit-points)) $)
+                      (apply merge $))]
+    (if (empty? new-map)
+      call-map
+      (recur for-namespace (merge call-map new-map)))))
+
 (defn namespace-call-map [for-namespace]
   (let [current-namespace *ns*]
     (try
       (change-to-namespace for-namespace)
-      (let [call-map (into {} (map
-                                #(vector (-> % meta :name) (exit-points %))
-                                (entry-points for-namespace)))]
+      (let [public-call-map (into {} (map
+                                       #(vector (-> % meta :name) (exit-points %))
+                                       (entry-points for-namespace)))
+            call-map (internal-vars for-namespace public-call-map)]
         (change-to-namespace current-namespace)
         call-map)
-      (catch Exception _
-        (change-to-namespace current-namespace)))))
+      (catch Exception e
+        (change-to-namespace current-namespace)
+        (throw e)))))
