@@ -3,7 +3,9 @@
   :url "https://github.com/HughPowell/ascension"
   :license {:name "Mozilla Public License v2.0"
             :url "https://www.mozilla.org/en-US/MPL/2.0/"}
-  :dependencies [[org.clojure/clojure "1.9.0-alpha16"]]
+  :dependencies [[org.clojure/clojure "1.9.0"]
+                 [org.clojure/tools.nrepl "0.2.13"]
+                 [mount "0.1.12"]]
   :plugins [[update-readme "0.1.0"]]
   :repositories [["releases" {:url "https://clojars.org/repo/"
                               :username :env

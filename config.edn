@@ -1,0 +1,2 @@
+{:server {:port 7888}
+ :client {:timeout 30000}}
